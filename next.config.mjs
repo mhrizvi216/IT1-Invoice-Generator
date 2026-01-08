@@ -3,7 +3,7 @@ const nextConfig = {
   reactStrictMode: true,
 
   // Mark these packages as server-only (works for both webpack and Turbopack)
-  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium'],
+  serverExternalPackages: ['puppeteer-core', '@sparticuz/chromium-min'],
 
   // Turbopack config (Next.js 16+)
   turbopack: {},
@@ -16,6 +16,7 @@ const nextConfig = {
         ...config.resolve.alias,
         'puppeteer-core': false,
         'puppeteer': false,
+        '@sparticuz/chromium-min': false,
         '@sparticuz/chromium': false,
       };
     }

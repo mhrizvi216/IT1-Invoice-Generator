@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium";
+import chromium from "@sparticuz/chromium-min";
 import { calculatePayroll } from "../../../../lib/calculations";
 import { savePayslip } from "../../../../lib/db";
 import { PayslipPayload, PayrollConfigInput } from "../../../../lib/types";
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     const launchOptions = {
       args: isLocal ? ['--no-sandbox'] : [...chromium.args, '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars'],
-      executablePath: isLocal ? undefined : await chromium.executablePath(),
+      executablePath: isLocal ? undefined : await chromium.executablePath('https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'),
       headless: true
     };
 
