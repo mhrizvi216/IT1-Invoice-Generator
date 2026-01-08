@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 import { getPayslip } from "../../../../lib/db";
 import { renderPayslipHtml } from "../../../../server/renderPayslipHtml";
 
@@ -9,8 +10,8 @@ interface Params {
   params: { id: string };
 }
 
-export async function GET(_req: NextRequest, { params }: Params) {
-  const { id } = params;
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const record = getPayslip(id);
 
   if (!record) {
@@ -19,7 +20,11 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const html = renderPayslipHtml(record);
 
-  const browser = await puppeteer.launch({ headless: true });
+  const browser = await puppeteer.launch({
+    args: chromium.args,
+    executablePath: await chromium.executablePath(),
+    headless: true
+  });
   const page = await browser.newPage();
   await page.setContent(html, { waitUntil: "networkidle0" });
 
