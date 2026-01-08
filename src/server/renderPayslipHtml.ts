@@ -1,13 +1,18 @@
 import { PayslipCalculated } from "../lib/types";
 import { formatMoney, formatPayDate, formatTimestamp } from "../lib/formatting";
 
-const PAYSLIP_CSS = `@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap');
-
+const PAYSLIP_CSS = `
 :root {
   --theme-color: #0088c8;
   --text-main: #111827;
   --text-muted: #6b7280;
   --border-color: #e5e7eb;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  margin: 0;
+  padding: 0;
 }
 
 .payslip-page {
@@ -16,7 +21,6 @@ const PAYSLIP_CSS = `@import url('https://fonts.googleapis.com/css2?family=Poppi
   background-color: #ffffff;
   position: relative;
   color: var(--text-main);
-  font-family: 'Poppins', sans-serif;
 }
 
 .payslip-inner {

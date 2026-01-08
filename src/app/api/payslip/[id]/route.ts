@@ -24,7 +24,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const isLocal = process.env.NODE_ENV === 'development' || !process.env.VERCEL;
 
     const launchOptions = {
-      args: isLocal ? ['--no-sandbox'] : chromium.args,
+      args: isLocal ? ['--no-sandbox'] : [...chromium.args, '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars'],
       executablePath: isLocal ? undefined : await chromium.executablePath(),
       headless: true
     };
