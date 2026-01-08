@@ -3,6 +3,8 @@ import puppeteer from "puppeteer-core";
 import chromium from "@sparticuz/chromium-min";
 import { getPayslip } from "../../../../lib/db";
 import { renderPayslipHtml } from "../../../../server/renderPayslipHtml";
+import fs from "fs";
+import path from "path";
 
 export const runtime = "nodejs";
 

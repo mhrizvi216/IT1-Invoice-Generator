@@ -6,6 +6,8 @@ import { savePayslip } from "../../../../lib/db";
 import { PayslipPayload, PayrollConfigInput } from "../../../../lib/types";
 import { formatPayDate } from "../../../../lib/formatting";
 import { renderPayslipHtml } from "../../../../server/renderPayslipHtml";
+import fs from "fs";
+import path from "path";
 
 export const runtime = "nodejs";
 
@@ -30,12 +32,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const publicDir = path.join(process.cwd(), "public");
+
     // Check for logo and inject default if missing
     if (!payload.company.logoDataUrl) {
       try {
-        const fs = require("fs");
-        const path = require("path");
-        const logoPath = path.join(process.cwd(), "public", "it1-logo.png");
+        const logoPath = path.join(publicDir, "it1-logo.png");
         if (fs.existsSync(logoPath)) {
           const logoBuffer = fs.readFileSync(logoPath);
           payload.company.logoDataUrl = `data:image/png;base64,${logoBuffer.toString("base64")}`;
@@ -48,9 +50,7 @@ export async function POST(req: NextRequest) {
     // Check for stamp and inject default if missing
     if (!payload.company.stampDataUrl) {
       try {
-        const fs = require("fs");
-        const path = require("path");
-        const stampPath = path.join(process.cwd(), "public", "IT1_Stamp.png");
+        const stampPath = path.join(publicDir, "IT1_Stamp.png");
         if (fs.existsSync(stampPath)) {
           const stampBuffer = fs.readFileSync(stampPath);
           payload.company.stampDataUrl = `data:image/png;base64,${stampBuffer.toString("base64")}`;
@@ -63,9 +63,7 @@ export async function POST(req: NextRequest) {
     // Check for watermark and inject default if missing
     if (!payload.company.watermarkDataUrl) {
       try {
-        const fs = require("fs");
-        const path = require("path");
-        const watermarkPath = path.join(process.cwd(), "public", "it1-logo.png");
+        const watermarkPath = path.join(publicDir, "it1-logo.png");
         if (fs.existsSync(watermarkPath)) {
           const watermarkBuffer = fs.readFileSync(watermarkPath);
           payload.company.watermarkDataUrl = `data:image/png;base64,${watermarkBuffer.toString("base64")}`;
