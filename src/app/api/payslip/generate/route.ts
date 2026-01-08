@@ -13,7 +13,8 @@ export const runtime = "nodejs";
 export async function POST(req: NextRequest) {
   let browser = null;
   try {
-    const { payload }: { payload: PayslipPayload } = await req.json();
+    const body = await req.json();
+    const payload: PayslipPayload = body.payload;
 
     if (!payload) {
       return new Response(JSON.stringify({ error: "No payload provided" }), { status: 400 });
@@ -24,21 +25,7 @@ export async function POST(req: NextRequest) {
       return new Response(JSON.stringify({ errors: calcResult.errors }), { status: 400 });
     }
 
-    // Attempt to save (non-blocking)
-    let record;
-    try {
-      record = savePayslip({ ...payload, calculated: calcResult.calculated });
-    } catch (dbError) {
-      console.error("DB Save failed, continuing in memory:", dbError);
-      record = {
-        ...payload,
-        id: "temp-" + Date.now(),
-        calculated: calcResult.calculated,
-        createdAt: new Date().toISOString()
-      };
-    }
-
-    // Inject fallbacks for branding if missing
+    // Inject fallbacks for branding if missing - 100% Filesystem Independent
     if (!payload.company.logoDataUrl) {
       payload.company.logoDataUrl = `data:image/png;base64,${DEFAULT_LOGO_B64}`;
     }
@@ -49,47 +36,45 @@ export async function POST(req: NextRequest) {
       payload.company.watermarkDataUrl = `data:image/png;base64,${DEFAULT_LOGO_B64}`;
     }
 
+    // Attempt to save (non-blocking, won't crash if Vercel FS is read-only)
+    let record;
+    try {
+      record = savePayslip({ ...payload, calculated: calcResult.calculated });
+    } catch (err) {
+      console.warn("DB save failed, using memory record:", err);
+      record = {
+        ...payload,
+        id: "v-" + Date.now(),
+        calculated: calcResult.calculated,
+        createdAt: new Date().toISOString()
+      };
+    }
+
     const html = renderPayslipHtml(record as any);
     const isLocal = process.env.NODE_ENV === 'development' || !process.env.VERCEL;
 
-    console.log(`Starting PDF Generation (Environment: ${isLocal ? 'Local' : 'Vercel'})`);
-
     const launchOptions = {
-      args: isLocal ? ['--no-sandbox'] : [...chromium.args, '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars'],
-      executablePath: isLocal ? undefined : await chromium.executablePath('https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'),
+      args: isLocal
+        ? ['--no-sandbox', '--disable-setuid-sandbox']
+        : [...chromium.args, '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars'],
+      executablePath: isLocal
+        ? undefined
+        : await chromium.executablePath('https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'),
       headless: true,
       ignoreHTTPSErrors: true
     };
 
     try {
       browser = await puppeteer.launch(launchOptions);
-    } catch (launchError: any) {
-      console.error("Puppeteer Launch Failure:", launchError);
-      return new Response(JSON.stringify({
-        error: "Browser failed to launch",
-        details: launchError.message,
-        stage: "launch"
-      }), { status: 500 });
-    }
+      const page = await browser.newPage();
 
-    const page = await browser.newPage();
-
-    try {
+      // Set content and wait for it to load
       await page.setContent(html, {
         waitUntil: "load",
         timeout: 25000
       });
-    } catch (contentError: any) {
-      console.error("Set Content Failure:", contentError);
-      await browser.close();
-      return new Response(JSON.stringify({
-        error: "Failed to render HTML content",
-        details: contentError.message,
-        stage: "navigation"
-      }), { status: 500 });
-    }
 
-    try {
+      // Generate PDF
       const pdfBuffer = await page.pdf({
         format: 'A4',
         printBackground: true,
@@ -97,7 +82,7 @@ export async function POST(req: NextRequest) {
         margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
       });
 
-      const safeName = payload.employee.fullName.replace(/[^a-zA-Z0-9]/g, "-");
+      const safeName = (payload.employee?.fullName || "Employee").replace(/[^a-zA-Z0-9]/g, "-");
       const dateStr = formatPayDate(payload.payroll.payDate, payload.payroll.dateFormatStyle);
       const filename = `Payslip-${safeName}-${dateStr}.pdf`;
 
@@ -110,26 +95,24 @@ export async function POST(req: NextRequest) {
         }
       });
     } catch (pdfError: any) {
-      console.error("PDF Print Failure:", pdfError);
+      console.error("Puppeteer Rendering Failure:", pdfError);
       return new Response(JSON.stringify({
-        error: "Failed to generate PDF buffer",
-        details: pdfError.message,
-        stage: "printing"
+        error: "PDF generation failed during rendering",
+        details: pdfError.message
       }), { status: 500 });
     }
-
   } catch (error: any) {
     console.error("Global API Error:", error);
     return new Response(JSON.stringify({
-      error: "An unexpected server error occurred",
+      error: "Unexpected server error",
       details: error.message
     }), { status: 500 });
   } finally {
     if (browser) {
       try {
         await browser.close();
-      } catch (closeError) {
-        console.error("Browser close error:", closeError);
+      } catch (e) {
+        console.error("Error closing browser:", e);
       }
     }
   }
