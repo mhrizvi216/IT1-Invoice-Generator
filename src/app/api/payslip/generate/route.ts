@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       });
     } else {
       // Production (Vercel): use puppeteer-core + sparticuz/chromium
-      const executablePath = await chromium.executablePath();
+      const executablePath = await chromium.executablePath("https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar");
       browser = await puppeteer.launch({
         args: chromium.args,
         defaultViewport: chromium.defaultViewport,
