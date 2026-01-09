@@ -53,14 +53,13 @@ export async function POST(req: NextRequest) {
     const html = renderPayslipHtml(record as any);
     const isLocal = process.env.NODE_ENV === 'development' || !process.env.VERCEL;
 
+    const executablePath = isLocal ? undefined : await chromium.executablePath();
+
     const launchOptions = {
-      args: isLocal
-        ? ['--no-sandbox', '--disable-setuid-sandbox']
-        : [...chromium.args, '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars'],
-      executablePath: isLocal
-        ? undefined
-        : await chromium.executablePath('https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'),
-      headless: true,
+      args: isLocal ? ['--no-sandbox', '--disable-setuid-sandbox'] : chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath,
+      headless: chromium.headless,
       ignoreHTTPSErrors: true
     };
 
