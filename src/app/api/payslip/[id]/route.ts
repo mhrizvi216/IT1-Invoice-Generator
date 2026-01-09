@@ -42,7 +42,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       const page = await browser.newPage();
 
       await page.setContent(html, {
-        waitUntil: "load",
+        waitUntil: "networkidle0",
         timeout: 25000
       });
 

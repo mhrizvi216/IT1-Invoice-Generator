@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     // Set content and wait for it to load
     await page.setContent(html, {
-      waitUntil: "load",
+      waitUntil: "networkidle0",
       timeout: 25000
     });
 
