@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import puppeteer from "puppeteer-core";
-import chromium from "@sparticuz/chromium-min";
+import chromium from "@sparticuz/chromium";
 import { calculatePayroll } from "../../../../lib/calculations";
 import { savePayslip } from "../../../../lib/db";
 import { PayslipPayload, PayrollConfigInput } from "../../../../lib/types";
@@ -51,30 +51,13 @@ export async function POST(req: NextRequest) {
     }
 
     const html = renderPayslipHtml(record as any);
-    const isLocal = process.env.NODE_ENV === 'development' || !process.env.VERCEL;
 
-    if (isLocal) {
-      // Local development: use full puppeteer
-      const puppeteerLocal = await import("puppeteer");
-      browser = await puppeteerLocal.default.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-    } else {
-      // Production (Vercel): use puppeteer-core + sparticuz/chromium
-      const executablePath = await chromium.executablePath("https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar");
-      browser = await puppeteer.launch({
-        args: chromium.args,
-        defaultViewport: chromium.defaultViewport,
-        executablePath,
-        headless: chromium.headless,
-        ignoreHTTPSErrors: true
-      } as any);
-    }
-
-    if (!browser) {
-      throw new Error("Failed to initialize browser");
-    }
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless,
+    } as any);
 
     const page = await browser.newPage();
 
