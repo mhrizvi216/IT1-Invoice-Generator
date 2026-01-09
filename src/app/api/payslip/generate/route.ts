@@ -53,57 +53,62 @@ export async function POST(req: NextRequest) {
     const html = renderPayslipHtml(record as any);
     const isLocal = process.env.NODE_ENV === 'development' || !process.env.VERCEL;
 
-    const executablePath = isLocal ? undefined : await chromium.executablePath();
-
-    const launchOptions = {
-      args: isLocal ? ['--no-sandbox', '--disable-setuid-sandbox'] : chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath,
-      headless: chromium.headless,
-      ignoreHTTPSErrors: true
-    };
-
-    try {
-      browser = await puppeteer.launch(launchOptions);
-      const page = await browser.newPage();
-
-      // Set content and wait for it to load
-      await page.setContent(html, {
-        waitUntil: "load",
-        timeout: 25000
+    if (isLocal) {
+      // Local development: use full puppeteer
+      const puppeteerLocal = await import("puppeteer");
+      browser = await puppeteerLocal.default.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
-
-      // Generate PDF
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        preferCSSPageSize: true,
-        margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
-      });
-
-      const safeName = (payload.employee?.fullName || "Employee").replace(/[^a-zA-Z0-9]/g, "-");
-      const dateStr = formatPayDate(payload.payroll.payDate, payload.payroll.dateFormatStyle);
-      const filename = `Payslip-${safeName}-${dateStr}.pdf`;
-
-      return new Response(pdfBuffer as any, {
-        status: 200,
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${filename}"`,
-          "X-Payslip-Id": record.id || "unknown"
-        }
-      });
-    } catch (pdfError: any) {
-      console.error("Puppeteer Rendering Failure:", pdfError);
-      return new Response(JSON.stringify({
-        error: "PDF generation failed during rendering",
-        details: pdfError.message
-      }), { status: 500 });
+    } else {
+      // Production (Vercel): use puppeteer-core + sparticuz/chromium
+      const executablePath = await chromium.executablePath();
+      browser = await puppeteer.launch({
+        args: chromium.args,
+        defaultViewport: chromium.defaultViewport,
+        executablePath,
+        headless: chromium.headless,
+        ignoreHTTPSErrors: true
+      } as any);
     }
+
+    if (!browser) {
+      throw new Error("Failed to initialize browser");
+    }
+
+    const page = await browser.newPage();
+
+    // Set content and wait for it to load
+    await page.setContent(html, {
+      waitUntil: "load",
+      timeout: 25000
+    });
+
+    // Generate PDF
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      preferCSSPageSize: true,
+      margin: { top: '0px', right: '0px', bottom: '0px', left: '0px' }
+    });
+
+    const safeName = (payload.employee?.fullName || "Employee").replace(/[^a-zA-Z0-9]/g, "-");
+    const dateStr = formatPayDate(payload.payroll.payDate, payload.payroll.dateFormatStyle);
+    const filename = `Payslip-${safeName}-${dateStr}.pdf`;
+
+    return new Response(pdfBuffer as any, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "X-Payslip-Id": record.id || "unknown"
+      }
+    });
+
   } catch (error: any) {
-    console.error("Global API Error:", error);
+    console.error("PDF Generation Error:", error);
     return new Response(JSON.stringify({
-      error: "Unexpected server error",
+      error: "PDF generation failed",
       details: error.message
     }), { status: 500 });
   } finally {
