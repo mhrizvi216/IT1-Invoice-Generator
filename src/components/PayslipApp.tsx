@@ -26,6 +26,7 @@ const initialState: FormState = samplePreset ?? {
   employee: emptyEmployee,
   payroll: {
     payDate: new Date().toISOString().slice(0, 10),
+    salaryMonth: "",
     currency: "PKR",
     netPay: 0,
     useDecimals: false,
@@ -293,6 +294,15 @@ export default function PayslipApp() {
 
             <h3>Payroll</h3>
             <div className="form-grid">
+              <label>
+                Salary Month
+                <input
+                  type="text"
+                  placeholder="e.g. Jan-2026"
+                  value={form.payroll.salaryMonth || ""}
+                  onChange={(e) => updatePayrollField("salaryMonth", e.target.value)}
+                />
+              </label>
               <label>
                 Pay Date
                 <input

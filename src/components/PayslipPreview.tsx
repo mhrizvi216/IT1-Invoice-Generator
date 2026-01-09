@@ -56,7 +56,11 @@ const PayslipPreview: React.FC<PreviewProps> = ({
             )}
           </div>
           <div className="header-right">
-            <div className="payslip-title-bar">PAYSLIP</div>
+            <div className="payslip-title-bar">
+              {payroll.salaryMonth
+                ? `Payslip for the month of ${payroll.salaryMonth}`
+                : "PAYSLIP"}
+            </div>
             <div className="company-block">
               <div className="company-name">{company.name}</div>
               {company.addressLines.map((line, idx) => (

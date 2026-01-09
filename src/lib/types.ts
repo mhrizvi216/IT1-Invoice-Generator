@@ -45,6 +45,7 @@ export interface DeductionComponent extends DeductionComponentInput {
 export type DateFormatStyle = "ordinal-short" | "alt";
 
 export interface PayrollConfigInput {
+  salaryMonth?: string; // e.g. "Jan-2026"
   payDate: string; // ISO date string
   currency: string; // e.g. PKR
   netPay: number; // user-entered net pay (major units)

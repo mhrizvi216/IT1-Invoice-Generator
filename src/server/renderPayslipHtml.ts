@@ -393,7 +393,11 @@ export function renderPayslipHtml(record: PayslipCalculated): string {
     }
           </div>
           <div class="header-right">
-            <div class="payslip-title-bar">PAYSLIP</div>
+            <div class="payslip-title-bar">
+              ${payroll.salaryMonth
+      ? `Payslip for the month of ${payroll.salaryMonth}`
+      : "PAYSLIP"}
+            </div>
             <div class="company-block">
               <div class="company-name">${company.name}</div>
               ${addressCompany}
